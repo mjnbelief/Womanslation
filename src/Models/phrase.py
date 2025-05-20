@@ -1,7 +1,8 @@
-from typing import List
-from src.base import Base, ResponseModel
-from src.database import get_db
-from src.meaning import Meaning
+import datetime
+from typing import List, Optional
+from base import Base, ResponseModel
+from database import get_db
+from meaning import Meaning
 
 
 class Phrase(Base):
@@ -16,19 +17,19 @@ class Phrase(Base):
     """
     
     text: str
-    suggested_response: str
-    meanings: List[Meaning]
-    tags: List[str]
+    suggested_response: Optional[str]
+    meanings: Optional[List[Meaning]] = None
+    tags: Optional[List[str]] = None
 
     def validate(self) -> ResponseModel:
         # Check if the phrase is a string and at least 3 characters long
         if not isinstance(self.text, str) or len(self.text) < 3:
             return ResponseModel(success=False, message="Phrase must be a string and at least 3 characters long")
-
+                
         return ResponseModel(success=True, message="Phrase validated successfully")
 
-
-    def get_phrase_by_text(self, text: str) -> ResponseModel:
+    @staticmethod
+    def get_phrase_by_text(text: str) -> ResponseModel:
         """
         Retrieve a phrase by text from the database.
         """
@@ -45,6 +46,7 @@ class Phrase(Base):
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
         
+    @staticmethod
     def create(self) -> ResponseModel:
         """
         Save the phrase to the database.
@@ -54,20 +56,25 @@ class Phrase(Base):
             return validation_response
         
         # Check if the phrase already exists in the database
-        existing_phrase = self.get_phrase_by_text(self.text)
-        
+        existing_phrase = Phrase.get_phrase_by_text(self.text)
+
         if existing_phrase.success:
             return ResponseModel(success=False, message="Phrase already exists in the database")
         
         try:
+            self.create_date = datetime.datetime.now()
             db = get_db()
-            db["phrases"].insert_one(self)
-            return ResponseModel(success=True, message="Phrase saved successfully")
-        
+            result = db["phrases"].insert_one(self.dict(exclude={"id"}))
+            
+            self.id = str(result.inserted_id)
+            
+            return ResponseModel(success=True, message="Phrase saved successfully", data=self)
+
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
     
-    def update(self) -> ResponseModel:
+    @staticmethod
+    def update(self, phrase_id: str) -> ResponseModel:
         """
         Update the phrase in the database.
         """
@@ -77,12 +84,13 @@ class Phrase(Base):
         
         try:
             db = get_db()
-            db["phrases"].update_one({"id": self.id}, {"$set": self})
+            db["phrases"].update_one({"id": phrase_id}, {"$set": self.dict(exclude={"id"})})
             return ResponseModel(success=True, message="Phrase updated successfully")
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
 
+    @staticmethod
     def delete(phrase_id: str) -> ResponseModel:
         """
         Delete the phrase from the database.
@@ -94,21 +102,32 @@ class Phrase(Base):
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
-        
-    def get_all_phrases() -> ResponseModel:
+
+    @staticmethod
+    def get_phrases(pageIndex: int = 0, pageSize: int = 10, searchText: str = "", tags: str = "") -> ResponseModel:
         """
         Retrieve all phrases from the database.
         """
         try:
+            # Create a query based on the search text and tags
+            query = {}
+            if searchText:
+                query["text"] = {"$regex": searchText.lower(), "$options": "i"}
+                
+            if tags:
+                query["tags"] = {"$in": tags.split(",")}
+                
             db = get_db()
-            data_from_db = db["phrases"].find()
+            data_from_db = db["phrases"].find(query).skip(pageIndex * pageSize).limit(pageSize)
             
-            phrases = [Phrase(**phrase) for phrase in data_from_db]
+            phrases: list[Phrase] = [Phrase.convert_mongo_to_phrase(phrase) for phrase in data_from_db]
+            
             return ResponseModel(success=True, data=phrases)
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
-    
+
+    @staticmethod
     def search_phrases_by_tag(tag: str) -> ResponseModel:
         """
         Search for phrases by tag in the database.
@@ -117,12 +136,13 @@ class Phrase(Base):
             db = get_db()
             data_from_db = db["phrases"].find({"tags": tag})
             
-            phrases = [Phrase(**phrase) for phrase in data_from_db]
+            phrases = [Phrase.convert_mongo_to_phrase(phrase) for phrase in data_from_db]
             return ResponseModel(success=True, data=phrases)
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
-    
+
+    @staticmethod
     def search_phrases(text: str) -> ResponseModel:
         """
         Search for phrases by text in the database.
@@ -130,9 +150,24 @@ class Phrase(Base):
         try:
             db = get_db()
             data_from_db = db["phrases"].find({"text": {"$regex": text, "$options": "i"}})
-            
-            phrases = [Phrase(**phrase) for phrase in data_from_db]
+
+            phrases = [Phrase.convert_mongo_to_phrase(phrase) for phrase in data_from_db]
             return ResponseModel(success=True, data=phrases)
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
+        
+    @classmethod
+    def convert_mongo_to_phrase(self, data: dict):
+        """
+            Convert MongoDB doc to Pydantic model
+            Args:
+                data (dict): The MongoDB document to convert.
+            Returns:
+                Phrase: The converted Pydantic model.
+        """
+        
+        data = data.copy()
+        data["id"] = str(data.pop("_id"))
+        return self(**data)
+        

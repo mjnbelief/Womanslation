@@ -175,3 +175,7 @@ cython_debug/
 
 .venv
 .vscode
+*.docx
+*.xlsx
+json.json
+Dockerfile
