@@ -1,8 +1,9 @@
 import sys
+
 sys.path.append("./src/apis")
 sys.path.append("./src/Models")
 sys.path.append("./src/datalayer")
-from phrase_api import app
+from api import app
 import uvicorn
 
 if __name__ == "__main__":

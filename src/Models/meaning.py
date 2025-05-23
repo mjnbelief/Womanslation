@@ -1,7 +1,8 @@
+import datetime
 from typing import Optional
 
 from bson import ObjectId
-from base import Base, ResponseModel, ToneEnum
+from base import Base, ResponseModel, ToneEnum, get_ip
 from database import get_db
 
 
@@ -10,17 +11,61 @@ class Meaning(Base):
     Meaning class to represent the meaning of a phrase.
 
     schema:
-    - phrase_id: str - ID of the phrase this meaning belongs to.
-    - meaning: str - The meaning of the phrase.
-    - tone: ToneEnum - The tone of the phrase.
-    - confidence: int - Confidence level from 0 to 100.
-    - warning_level: int - Warning level from 0 to 10.
+        - phrase_id: str - ID of the phrase this meaning belongs to.
+        - meaning: str - The meaning of the phrase.
+        - tone: ToneEnum - The tone of the phrase.
+        - confidence: int - Confidence level from 0 to 100.
+        - warning_level: int - Warning level from 0 to 10.
+    
+    two field more in response:
+        - like_count: int - Number of likes for the meaning.
+        - is_liked_by_user: bool - Indicates if the user has liked the meaning.   
     """
+    
+    
     phrase_id: str  # ID of the phrase this meaning belongs to
     meaning: str
-    tone: Optional[ToneEnum] = None
-    confidence: Optional[int] = None  # Confidence level from 0 to 100
-    warning_level: Optional[int] = None  # Warning level from 0 to 5
+    tone: Optional[ToneEnum] = ToneEnum.q  # default tone is "other"
+    confidence: Optional[int] = 50  # Confidence level from 0 to 100
+    warning_level: Optional[int] = 0  # Warning level from 0 to 5
+    
+    ## these fields are not in the database just for the response
+    like_count: Optional[int] = 0
+    is_liked_by_user: bool = False
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.like_count = self.get_like_count()
+        self.is_liked_by_user = self.check_is_liked_by_user()
+        
+    def get_like_count(self) -> int:
+        """
+        Get the like count for the meaning.
+        """
+        try:
+            db = get_db()
+            data_from_db = db["user_votes"].count_documents({"meaning_id": self.id, "like": True})
+            
+            return data_from_db
+        except:
+            return 0
+
+    def check_is_liked_by_user(self) -> bool:
+        """
+        Check if the meaning is liked by the user.
+        """
+        try:
+            user_ip = get_ip()
+
+            db = get_db()
+            data_from_db = db["user_votes"].find_one({"meaning_id": self.id, "ip": user_ip})
+
+            if data_from_db and data_from_db["like"] == True:
+                return True
+            else:
+                return False
+        except:
+            return False
 
     def validation(self) -> ResponseModel:
         """
@@ -74,14 +119,14 @@ class Meaning(Base):
             if not data_from_db["meanings"]:
                 return ResponseModel(success=False, message="Meanings not found!")
 
-            result = [Meaning.convert_mongo_to_meaning(meaning) for meaning in data_from_db["meanings"]]
+            result = [Meaning(**meaning) for meaning in data_from_db["meanings"]]
             return ResponseModel(success=True, data=result)
 
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
-    def create(self) -> ResponseModel:
+    def create(self, phrase_id: str) -> ResponseModel:
         """
         Save the meaning to the database.
         """
@@ -90,25 +135,27 @@ class Meaning(Base):
             return validation_response
 
         # Check if the meaning already exists in the database
-        existing_meaning = self.check_duplicate_possibility(self)
+        existing_meaning = self.check_duplicate_possibility()
 
         if existing_meaning:
             return ResponseModel(success=False, message="Meaning already exists in the database")
 
         try:
+            self.create_date = datetime.datetime.now()
+            self.id = str(ObjectId())
+            
             db = get_db()
             data_from_db = db["phrases"].update_one(
-                {"_id": ObjectId(self.phrase_id)},
-                {"$addToSet": {"meanings": self.dict(exclude={"id"})}}
+                {"_id": ObjectId(phrase_id)},
+                {"$addToSet": {"meanings": self.dict(exclude={"like_count", "is_liked_by_user"})}}
             )
-            self.id = data_from_db.inserted_id
             return ResponseModel(success=True, message="Meaning added successfully", data=self)
 
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
-    def update(self, meaning_id: str) -> ResponseModel:
+    def update(self, phrase_id: str, meaning_id: str) -> ResponseModel:
         """
         Update the meaning in the database.
         """
@@ -118,14 +165,14 @@ class Meaning(Base):
 
         try:
             db = get_db()
-            db["phrases"].update_one(
+            data_from_db = db["phrases"].find_one_and_update(
                 {
-                    "_id": ObjectId(self.phrase_id),
-                    "meanings._id": ObjectId(meaning_id)
+                    "_id": ObjectId(phrase_id),
+                    "meanings.id": meaning_id
                 },
-                {"$set": {"meanings.$": self.dict(exclude={"id"})}}
+                {"$set": {"meanings.$": self.dict(exclude={"id", "like_count", "is_liked_by_user"})}}
             )
-            return ResponseModel(success=True, message="Meaning updated successfully")
+            return ResponseModel(success=True, message="Meaning updated successfully", data=Meaning(**data_from_db))
 
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
@@ -163,17 +210,3 @@ class Meaning(Base):
 
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
-
-    @classmethod
-    def convert_mongo_to_meaning(self, data: dict):
-        """
-            Convert MongoDB doc to Pydantic model
-            Args:
-                data (dict): The MongoDB document to convert.
-            Returns:
-                Meaning: The converted Pydantic model.
-        """
-
-        data = data.copy()
-        data["id"] = str(data.pop("_id"))
-        return self(**data)

@@ -1,6 +1,9 @@
 import datetime
 from typing import List, Optional
-from base import Base, ResponseModel
+
+from bson import ObjectId
+import pymongo
+from base import Base, ResponseModel, SortEnum
 from database import get_db
 from meaning import Meaning
 
@@ -8,18 +11,24 @@ from meaning import Meaning
 class Phrase(Base):
     """
     Phrase class to represent a phrase with its suggested response, meanings, and tags.
+    
     schema:
     - text: str - The phrase to be analyzed.
     - suggested_response: str - The suggested response to the phrase.
     - meanings: List[Meaning] - The meanings of the phrase.
     - tags: List[str] - The tags associated with the phrase.
-    
+    - views: int - The number of views for the phrase.
     """
     
     text: str
     suggested_response: Optional[str]
-    meanings: Optional[List[Meaning]] = None
-    tags: Optional[List[str]] = None
+    meanings: Optional[List[Meaning]] = []
+    tags: Optional[List[str]] = []
+    views: Optional[int] = 0
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.tags = [tag.strip().lower() for tag in self.tags]
 
     def validate(self) -> ResponseModel:
         # Check if the phrase is a string and at least 3 characters long
@@ -28,6 +37,20 @@ class Phrase(Base):
                 
         return ResponseModel(success=True, message="Phrase validated successfully")
 
+    @staticmethod
+    def Phrase_viewed(phrase_id: str) -> ResponseModel:
+        """
+        Increment the view count of the phrase.
+        """
+        try:
+            db = get_db()
+            data_from_db = db["phrases"].find_one_and_update({"_id": ObjectId(phrase_id)}, {"$inc": {"views": 1}})
+            
+            return ResponseModel(success=True, message="Phrase viewed successfully", data=Phrase.convert_mongo_to_phrase(data_from_db))
+        
+        except Exception as e:
+            return ResponseModel(success=False, message=str(e))
+    
     @staticmethod
     def get_phrase_by_text(text: str) -> ResponseModel:
         """
@@ -84,9 +107,9 @@ class Phrase(Base):
         
         try:
             db = get_db()
-            db["phrases"].update_one({"id": phrase_id}, {"$set": self.dict(exclude={"id"})})
-            return ResponseModel(success=True, message="Phrase updated successfully")
-        
+            data_from_db = db["phrases"].find_one_and_update({"_id": ObjectId(phrase_id)}, {"$set": self.dict(exclude={"id", "create_date"})},return_document=pymongo.ReturnDocument.AFTER)
+            return ResponseModel(success=True, message="Phrase updated successfully", data=Phrase.convert_mongo_to_phrase(data_from_db))
+
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
 
@@ -97,14 +120,14 @@ class Phrase(Base):
         """
         try:
             db = get_db()
-            db["phrases"].delete_one({"id": phrase_id})
+            db["phrases"].delete_one({"_id": ObjectId(phrase_id)})
             return ResponseModel(success=True, message="Phrase deleted successfully")
         
         except Exception as e:
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
-    def get_phrases(pageIndex: int = 0, pageSize: int = 10, searchText: str = "", tags: str = "") -> ResponseModel:
+    def get_phrases(pageIndex: int = 0, pageSize: int = 10, pageOrder: SortEnum = SortEnum.newest, searchText: str = "", tags: str = "") -> ResponseModel:
         """
         Retrieve all phrases from the database.
         """
@@ -112,14 +135,26 @@ class Phrase(Base):
             # Create a query based on the search text and tags
             query = {}
             if searchText:
-                query["text"] = {"$regex": searchText.lower(), "$options": "i"}
-                
+                query["text"] = {"$regex": searchText.strip().lower(), "$options": "i"}
             if tags:
-                query["tags"] = {"$in": tags.split(",")}
-                
-            db = get_db()
-            data_from_db = db["phrases"].find(query).skip(pageIndex * pageSize).limit(pageSize)
+                query["tags"] = {"$in": [tag.strip().lower() for tag in tags.split(",")]}
+
+            order_by = ("create_date", pymongo.DESCENDING)
+            match pageOrder:
+                case SortEnum.A_Z:
+                    order_by = ("text", pymongo.ASCENDING)
+                case SortEnum.Z_A:
+                    order_by = ("text", pymongo.DESCENDING)
+                case SortEnum.oldest:
+                    order_by = ("create_date", pymongo.ASCENDING)
+                case SortEnum.newest:
+                    order_by = ("create_date", pymongo.DESCENDING)
+                case SortEnum.most_viewed:
+                    order_by = ("views", pymongo.DESCENDING)
             
+            db = get_db()
+            data_from_db = db["phrases"].find(query).sort(order_by[0], order_by[1]).skip(pageIndex * pageSize).limit(pageSize)
+
             phrases: list[Phrase] = [Phrase.convert_mongo_to_phrase(phrase) for phrase in data_from_db]
             
             return ResponseModel(success=True, data=phrases)

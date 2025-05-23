@@ -1,7 +1,28 @@
 import datetime
 from pydantic import BaseModel, ValidationError
-from typing import Dict, Optional
+from typing import Optional
 from enum import Enum
+from contextvars import ContextVar
+from fastapi import Request
+
+_request_context: ContextVar[Request] = ContextVar("request")
+
+def set_request_context(request: Request):
+    _request_context.set(request)
+
+def get_current_request() -> Request:
+    return _request_context.get()
+
+def get_ip() -> str:
+    """
+    Get the IP address of the current request.
+    """
+    x_forwarded_for = get_current_request().headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        user_ip = x_forwarded_for.split(",")[0].strip()
+    else:
+        user_ip = get_current_request().client.host
+    return user_ip
 
 class Base(BaseModel):
     """
@@ -13,7 +34,7 @@ class Base(BaseModel):
     """
     
     id: Optional[str] = None
-    _create_date: Optional[datetime.datetime] = None
+    create_date: Optional[datetime.datetime] = None
 
 
 class ResponseModel(BaseModel):
@@ -24,6 +45,13 @@ class ResponseModel(BaseModel):
     message: Optional[str] = None
     data: Optional[object] = None
 
+
+class SortEnum(str, Enum):
+    A_Z = 'A-Z'
+    Z_A = 'Z-A'
+    oldest = 'oldest'
+    newest = 'newest'
+    most_viewed = 'most_viewed'
 
 class ToneEnum(str, Enum):
     a = 'Passive-aggressive'
