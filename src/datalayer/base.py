@@ -1,9 +1,13 @@
 import datetime
-from pydantic import BaseModel, ValidationError
+import logging
+from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 from contextvars import ContextVar
 from fastapi import Request
+
+my_logger = logging.getLogger("my_logger")
+logging.basicConfig(level=logging.ERROR, filename="my_logger.log")
 
 _request_context: ContextVar[Request] = ContextVar("request")
 
@@ -61,7 +65,7 @@ class ToneEnum(str, Enum):
     f = 'Hurt / Indirect'
     g = 'Playful'
     h = 'Angry / Confrontational'
-    i = 'Guilt-inducing	'
+    i = 'Guilt-inducing'
     j = 'Disappointed'
     k = 'Flirty / Teasing'
     l = 'Neutral / Literal'

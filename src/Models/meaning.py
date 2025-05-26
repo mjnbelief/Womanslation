@@ -2,7 +2,8 @@ import datetime
 from typing import Optional
 
 from bson import ObjectId
-from base import Base, ResponseModel, ToneEnum, get_ip
+from pymongo import ReturnDocument
+from base import Base, ResponseModel, ToneEnum, get_ip, my_logger
 from database import get_db
 
 
@@ -21,9 +22,8 @@ class Meaning(Base):
         - like_count: int - Number of likes for the meaning.
         - is_liked_by_user: bool - Indicates if the user has liked the meaning.   
     """
-    
-    
-    phrase_id: str  # ID of the phrase this meaning belongs to
+
+    phrase_id: Optional[str] = None  # ID of the phrase this meaning belongs to
     meaning: str
     tone: Optional[ToneEnum] = ToneEnum.q  # default tone is "other"
     confidence: Optional[int] = 50  # Confidence level from 0 to 100
@@ -47,7 +47,8 @@ class Meaning(Base):
             data_from_db = db["user_votes"].count_documents({"meaning_id": self.id, "like": True})
             
             return data_from_db
-        except:
+        except Exception as e:
+            my_logger.error(f"can not get like for meaning {self.id}\n{e.args[0]}")
             return 0
 
     def check_is_liked_by_user(self) -> bool:
@@ -64,7 +65,8 @@ class Meaning(Base):
                 return True
             else:
                 return False
-        except:
+        except Exception as e:
+            my_logger.error(f"can not check if meaning {self.id} is liked by user\n{e.args[0]}")
             return False
 
     def validation(self) -> ResponseModel:
@@ -123,6 +125,7 @@ class Meaning(Base):
             return ResponseModel(success=True, data=result)
 
         except Exception as e:
+            my_logger.error(f"Error retrieving meanings for phrase {phrase_id}\n{e.args[0]}")
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
@@ -152,8 +155,30 @@ class Meaning(Base):
             return ResponseModel(success=True, message="Meaning added successfully", data=self)
 
         except Exception as e:
+            my_logger.error(f"Error adding meaning for phrase {phrase_id}\n{e.args[0]}")
             return ResponseModel(success=False, message=str(e))
 
+    @staticmethod
+    def create_meanings(meanings: list, phrase_id: str) -> ResponseModel:
+        """
+            Save multiple meanings to the database. 
+            This method is used when creating a phrase with multiple meanings.
+            It will create a new meaning object for each meaning in the list and update the phrase in the database.
+        """
+        meaning_added = 0
+        for meaning in meanings:
+            try:
+                
+                result = Meaning.create(meaning, phrase_id)
+                if result.success:
+                    meaning_added += 1
+            except Exception as e:
+                my_logger.warning(f"Error adding meaning {meaning} for phrase {phrase_id}\n{e.args[0]}")
+                continue
+
+        return ResponseModel(success=True, message=f"{meaning_added} meanings added successfully")
+
+    
     @staticmethod
     def update(self, phrase_id: str, meaning_id: str) -> ResponseModel:
         """
@@ -170,11 +195,13 @@ class Meaning(Base):
                     "_id": ObjectId(phrase_id),
                     "meanings.id": meaning_id
                 },
-                {"$set": {"meanings.$": self.dict(exclude={"id", "like_count", "is_liked_by_user"})}}
+                {"$set": {"meanings.$": self.dict(exclude={"id", "like_count", "is_liked_by_user"})}},
+                return_document=ReturnDocument.AFTER
             )
             return ResponseModel(success=True, message="Meaning updated successfully", data=Meaning(**data_from_db))
 
         except Exception as e:
+            my_logger.error(f"Error updating meaning {meaning_id} for phrase {phrase_id}\n{e.args[0]}")
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
@@ -192,6 +219,7 @@ class Meaning(Base):
             return ResponseModel(success=True, message="Meaning deleted successfully")
 
         except Exception as e:
+            my_logger.error(f"Error deleting meaning {meaning_id} for phrase {phrase_id}\n{e.args[0]}")
             return ResponseModel(success=False, message=str(e))
 
     @staticmethod
@@ -209,4 +237,5 @@ class Meaning(Base):
             return ResponseModel(success=True, message=f"All meanings for phrase {phrase_id} deleted successfully")
 
         except Exception as e:
+            my_logger.error(f"Error deleting meanings for phrase {phrase_id}\n{e.args[0]}")
             return ResponseModel(success=False, message=str(e))

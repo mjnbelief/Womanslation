@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 from bson import ObjectId
-from base import Base, ResponseModel
+from base import Base, ResponseModel, my_logger
 from database import get_db
 
 class User_Vote(Base):
@@ -16,7 +16,7 @@ class User_Vote(Base):
     """
     phrase_id: str # we need phrase_id just when we want to delete the vote by phrase_id
     meaning_id: str
-    ip: str
+    ip: Optional[str] = None
     like: bool = False
         
     def validation(self) -> ResponseModel:
@@ -41,7 +41,26 @@ class User_Vote(Base):
         # Check if the vote already exists in the database
         return str(data_from_db.pop("_id")) if data_from_db else None
 
+    @staticmethod
+    def get_by_ip(user_ip: str) -> ResponseModel:
+        """
+        Get all votes by user IP.
+        """
+        try:
+            db = get_db()
+            data_from_db = db["user_votes"].find({"ip": user_ip, "like": True})
 
+            if not data_from_db:
+                return ResponseModel(success=False, message="No votes found for this User")
+
+            votes = [User_Vote.convert_mongo_to_user_vote(data) for data in data_from_db]
+            return ResponseModel(success=True, message="Votes retrieved successfully", data=votes)
+
+        except Exception as e:
+            my_logger.error(f"Error retrieving votes by IP {user_ip}: {e}")
+            return ResponseModel(success=False, message=str(e))
+    
+    @staticmethod
     def create(self) -> ResponseModel:
         """
         Create a new vote in the database.
@@ -55,7 +74,7 @@ class User_Vote(Base):
             existing_id = self.check_duplicate_possibility()
             if existing_id:
                 self.id = existing_id
-                updated_vote_response = self.update()
+                updated_vote_response = User_Vote.update(self)
                 return updated_vote_response
 
             self.create_date = datetime.datetime.now()
@@ -68,8 +87,10 @@ class User_Vote(Base):
             return ResponseModel(success=True, message="Vote created successfully", data=self)
 
         except Exception as e:
+            my_logger.error(f"Error creating vote: {e}")
             return ResponseModel(success=False, message=str(e))
     
+    @staticmethod
     def update(self) -> ResponseModel:
         """
         Update the vote in the database.
@@ -87,8 +108,10 @@ class User_Vote(Base):
             return ResponseModel(success=True, message="Vote updated successfully", data=User_Vote.convert_mongo_to_user_vote(data_from_db))
 
         except Exception as e:
+            my_logger.error(f"Error updating vote: {e}")
             return ResponseModel(success=False, message=str(e))
     
+    @staticmethod
     def delete(vote_id: str) -> ResponseModel:
         """
         Delete the vote from the database.
@@ -100,8 +123,10 @@ class User_Vote(Base):
             return ResponseModel(success=True, message="Vote deleted successfully")
 
         except Exception as e:
+            my_logger.error(f"Error deleting vote {vote_id}: {e}")
             return ResponseModel(success=False, message=str(e))
-        
+    
+    @staticmethod    
     def delete_by_meaning_id(meaning_id: str) -> ResponseModel:
         """
         Delete the vote from the database by meaning_id.
@@ -113,8 +138,10 @@ class User_Vote(Base):
             return ResponseModel(success=True, message="Vote(s) deleted successfully")
 
         except Exception as e:
+            my_logger.error(f"Error deleting vote by meaning_id {meaning_id}: {e}")
             return ResponseModel(success=False, message=str(e))
     
+    @staticmethod
     def delete_by_phrase_id(phrase_id: str) -> ResponseModel:
         """
         Delete the vote from the database by phrase_id.
@@ -126,6 +153,7 @@ class User_Vote(Base):
             return ResponseModel(success=True, message="Vote(s) deleted successfully")
 
         except Exception as e:
+            my_logger.error(f"Error deleting vote by phrase_id {phrase_id}: {e}")
             return ResponseModel(success=False, message=str(e))
         
     @classmethod
