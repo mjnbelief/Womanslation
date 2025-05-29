@@ -1,49 +1,107 @@
-# 
+# 🧠 Womanslation
+**Womanslation** is a playful, educational backend project that helps decode hidden meanings behind commonly-used phrases in conversations — especially those that may be misunderstood between genders.
 
-<h1 align="center">Womanslation</h1>
-<p align="center">
-  <i></i>
-  <br/><br/>
-  <img width="130" alt="Womanslation" src="redi_restaurant_logo.jpg"/>
-  <br/><br/>
-    <b><a href="#">Current Version (0.2.0)</a></b> | 
-  <b><a target="_blank" href="https://github.com/mjnbelief/Restaurant">Last commit (November)</a></b>
-</p>
+Built with **FastAPI** and **MongoDB**, this project is ideal for learning backend development, RESTful APIs, and working with NoSQL databases in a fun and creative way.
 
-## Description
-<p>
-    # ReDI restaurant app provides a food menu available in both English and German. <br/>
-    # With just a few taps, users can easily browse the menu, select and order their desired dishes. <br/>
-    # At the end, the app generates and displays a detailed bill for the user.
-</p>
+---
 
-## Requirements
-<ul>
-    <li>Python --> 3.12.7+</li>
-    <li>borders --> 1.2.0+</li>
-    <li>pathlib --> 1.0.1+</li>
-    <li>xhtml2pdf --> 0.2.16+</li>
-    <li>console_menu --> 0.8.0+</li>
-    <li>beautifulsoup4 --> 4.12.3+</li>
-</ul>
+## 💡 Project Idea
 
-## Usage
+Women (and humans in general!) sometimes say things that carry meanings beyond the literal words. This app stores those phrases, decodes possible interpretations, and suggests thoughtful, non-disastrous responses 😄
 
-First, clone the repository:
-```shell
-git clone https://github.com/mjnbelief/Restaurant
+Example:
+> 🗣️ Phrase: *"Do whatever you want."*  
+> 🤯 Hidden meaning: *"If you actually do it, I’ll be furious."*  
+> ✅ Suggested response: *"I’d rather decide together if you're okay with that."*
+
+---
+
+## 🔧 Tech Stack
+
+- 🐍 **FastAPI** (Python web framework)
+- 🍃 **MongoDB** (NoSQL database)
+- 🔄 REST API endpoints for CRUD operations
+- 📦 JSON-based data storage
+- 📁 Optional frontend or mobile app support (future roadmap)
+
+---
+
+## 🚀 How to Run Locally
+
+1. **Clone this repo**:
+   ```bash
+   git clone https://github.com/mjnbelief/Womanslation.git
+   cd womanslation
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the project**:
+   ```bash
+   python main.py
+   ```
+
+4. **Visit the interactive API docs**:
+   [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🗂 Sample Data Format
+
+```json
+    {
+        "text": "I'm not hungry.",
+        "create_date": "2023-10-16T00:00:00Z",
+        "suggested_response": "Noted. I'll still get fries... which you'll end up eating.",
+        "tags": [
+            "comedic",
+            "denial",
+            "food-related"
+        ],
+        "views": 445,
+        "meanings": [
+            {
+                "meaning": "I'll eat half of whatever you order.",
+                "tone": "Playful",
+                "confidence": 90,
+                "warning_level": 2
+            },
+            {
+                "meaning": "I want you to insist and guess what I actually want.",
+                "tone": "other",
+                "confidence": 82,
+                "warning_level": 1
+            }
+        ]
+    },
 ```
 
-Then install requirements :
-```
-pip3 install –r requirements.txt
-```
+---
 
-## Screenshots
-<div align="center">
-<img alt="drinks" src="Screenshots/language_selection.jpg"/>
-<img alt="drinks" src="Screenshots/menu.jpg"/>
-<img alt="drinks" src="Screenshots/drinks.jpg"/>
-<img alt="drinks" src="Screenshots/my_orders.png"/>
-<img alt="drinks" src="Screenshots/receipt.jpg"/>
-</div>
+
+## 🧪 Future Ideas
+
+- 🔐 User accounts:
+    - Favorites
+    - View visit history
+- 🌍 Multi-language or multi-culture phrase packs.
+- 💬 Commenting system.
+- 🔁 Reverse Version:
+    - What Phrases Do Men Say That Have a Special Meaning?
+- 🕵️‍♀️ Admin review and permission
+
+---
+
+## 🧑‍💻 Created By
+
+**Project Name**: Womanslation  
+**Concept**: (Woman + Translation) Decode what she said vs what she meant  
+**Author**: MJ Noori  
+**Date**: 2025
+
+---
+
+> ⚠️ Disclaimer: This app is meant for entertainment, humor, and social insight — not to stereotype or generalize communication styles.
