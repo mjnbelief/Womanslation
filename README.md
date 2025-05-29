@@ -41,7 +41,7 @@ Example:
 
 3. **Run the project**:
    ```bash
-   python main.py
+   python src/main.py
    ```
 
 4. **Visit the interactive API docs**:
