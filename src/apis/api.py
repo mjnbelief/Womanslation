@@ -33,7 +33,7 @@ def on_startup():
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Hello": "Welcome to the Womanslation."}
 
 @app.get("/phrases", response_model=ResponseModel)
 def get_phrases(page_number: int = 0, page_size: int = 10, pageOrder: SortEnum = SortEnum.newest, search_text: str = "", tags: str = "") -> ResponseModel:
@@ -242,17 +242,15 @@ def update_meaning(phrase_id: str, meaning_id: str, meaning: Meaning) -> Respons
 @app.delete("/phrases/{phrase_id}/meanings/{meaning_id}", response_model=ResponseModel)
 def delete_meaning(phrase_id: str, meaning_id: str) -> ResponseModel:
     """
-        
-
-    Args:
-        phrase_id (str): _description_
-        meaning_id (str): _description_
+    Parameters:
+        phrase_id (str): The ID of the phrase for which to delete the meaning.
+        meaning_id (str): The ID of the meaning to be delete.
 
     Raises:
-        HTTPException: _description_
-
+        HTTPException: If an error occurs during the delete of the meaning.
+        
     Returns:
-        ResponseModel: _description_
+        ResponseModel: The response model indicating the success or failure of the deletion.
     """
     try:
         result = Meaning.delete(phrase_id, meaning_id)
@@ -271,6 +269,16 @@ def delete_meaning(phrase_id: str, meaning_id: str) -> ResponseModel:
     
 @app.delete("/phrases/{phrase_id}/meanings", response_model=ResponseModel)
 def delete_meanings_by_phrase_id(phrase_id: str) -> ResponseModel:
+    """
+    Parameters:
+        phrase_id (str): The ID of the phrase for which to delete the meanings.
+
+    Raises:
+        HTTPException: If an error occurs during the delete of the meanings.
+        
+    Returns:
+        ResponseModel: The response model indicating the success or failure of the deletion.
+    """
     try:
         result = Meaning.delete_meanings_by_phrase_id(phrase_id)
         
@@ -291,8 +299,19 @@ def delete_meanings_by_phrase_id(phrase_id: str) -> ResponseModel:
 @app.post("/phrases/{phrase_id}/meanings/{meaning_id}/vote", response_model=ResponseModel)
 def create_vote(phrase_id: str, meaning_id: str, like: bool, request: Request) -> ResponseModel:
     """
-    Create or update a vote for a meaning.
+    like or unlike a meaning.
     when user votes again, it will update the vote automatically
+    
+    Parameters:
+        phrase_id (str): The ID of the phrase.
+        meaning_id (str): The ID of the meaning which to like.
+        like (bool): for like True, for unlike False 
+
+    Raises:
+        HTTPException: If an error occurs during the like.
+        
+    Returns:
+        ResponseModel: The response model containing the liked of unliked User_Vote.
     """
     try:
         user_ip = get_ip()
@@ -311,7 +330,13 @@ def create_vote(phrase_id: str, meaning_id: str, like: bool, request: Request) -
 @app.get("/user_vote/current_user", response_model=ResponseModel)
 def get_current_user_vote() -> ResponseModel:
     """
-    Get the current user's vote.
+    Get all current user's votes.
+    
+    Raises:
+        HTTPException: If an error occurs during the getting current user's votes.
+        
+    Returns:
+        ResponseModel: The response model containing list of liked User_Vote.
     """
     try:
         user_ip = get_ip()
@@ -325,8 +350,19 @@ def get_current_user_vote() -> ResponseModel:
 
 @app.delete("/user_vote/{vote_id}", response_model=ResponseModel)
 def delete_user_vote(vote_id: str) -> ResponseModel:
+    
     """
-    Delete a user vote.
+    like or unlike a meaning.
+    when user votes again, it will update the vote automatically
+    
+    Parameters:
+        vote_id (str): The ID of the User_vote.
+
+    Raises:
+        HTTPException: If an error occurs during the delete of User_vote.
+
+    Returns:
+        ResponseModel: The response model indicating the success or failure of the deletion.
     """
     try:
         result = User_Vote.delete(vote_id)
