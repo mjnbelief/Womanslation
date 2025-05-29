@@ -8,10 +8,12 @@ from user_vote import User_Vote
 
 app = FastAPI()
 
+#Allowing Site for API submission.
 origins = [
     "https://preview--womanslation.lovable.app"
 ]
 
+#Allowing API submission from the entered site.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,              
@@ -27,6 +29,7 @@ async def add_request_context(request: Request, call_next):
     response = await call_next(request)
     return response
 
+#Inserting default data into the database when launching the application
 @app.on_event("startup")
 def on_startup():
    insert_data_from_json()
