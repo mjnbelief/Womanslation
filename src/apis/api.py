@@ -1,16 +1,13 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from add_first_rows import insert_data_from_json
-from base import ResponseModel, SortEnum, get_ip, set_request_context, my_logger
-from meaning import Meaning
-from phrase import Phrase
-from user_vote import User_Vote
+from datalayer import ResponseModel, SortEnum, get_ip, set_request_context, my_logger, insert_data_from_json
+from Models import Meaning, Phrase, User_Vote
 
 app = FastAPI()
 
 #Allowing Site for API submission.
 origins = [
-    "https://preview--womanslation.lovable.app"
+    "https://womanslation.lovable.app"
 ]
 
 #Allowing API submission from the entered site.
@@ -69,7 +66,6 @@ def get_phrases(page_number: int = 0, page_size: int = 10, pageOrder: SortEnum =
 @app.post("/phrases", response_model=ResponseModel)
 def create_phrase(phrase: Phrase) -> ResponseModel:
     """
-    
     Create a new phrase.
 
     Args:

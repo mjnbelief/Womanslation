@@ -1,5 +1,5 @@
-from database import get_db
-from phrase import Phrase
+from datalayer import get_db
+from Models import Phrase
 
 data = [
     {
@@ -46,7 +46,7 @@ data = [
             },
             {
                 "meaning": "She's measuring her fear of distance or neglect.",
-                "tone": "Insecure",
+                "tone": "other",
                 "confidence": 87,
                 "warning_level": 4
             }
@@ -121,7 +121,7 @@ data = [
             },
             {
                 "meaning": "I want you to insist and guess what I actually want.",
-                "tone": "Playful",
+                "tone": "other",
                 "confidence": 82,
                 "warning_level": 1
             }
@@ -146,7 +146,7 @@ data = [
             },
             {
                 "meaning": "I'm mentally rehearsing a TED Talk on your mistakes.",
-                "tone": "Angry / Confrontational",
+                "tone": "other",
                 "confidence": 91,
                 "warning_level": 5
             }
@@ -196,7 +196,7 @@ data = [
             },
             {
                 "meaning": "We are 40 minutes away from leaving.",
-                "tone": "Playful",
+                "tone": "other",
                 "confidence": 88,
                 "warning_level": 2
             }

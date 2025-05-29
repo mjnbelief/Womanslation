@@ -1,11 +1,8 @@
 import datetime
-from typing import Optional
-
 from bson import ObjectId
+from typing import Optional
 from pymongo import ReturnDocument
-from base import Base, ResponseModel, ToneEnum, get_ip, my_logger
-from database import get_db
-
+from datalayer import Base, ResponseModel, ToneEnum, get_ip, my_logger, get_db
 
 class Meaning(Base):
     """

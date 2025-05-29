@@ -1,8 +1,7 @@
 import datetime
-from typing import Optional
 from bson import ObjectId
-from base import Base, ResponseModel, my_logger
-from database import get_db
+from typing import Optional
+from datalayer import Base, ResponseModel, my_logger, get_db
 
 class User_Vote(Base):
     """

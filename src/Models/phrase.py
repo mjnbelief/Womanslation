@@ -1,11 +1,9 @@
+import pymongo
 import datetime
 from typing import List, Optional
-
 from bson import ObjectId
-import pymongo
-from base import Base, ResponseModel, SortEnum, my_logger
-from database import get_db
-from meaning import Meaning
+from datalayer import Base, ResponseModel, SortEnum, my_logger, get_db
+from .meaning import Meaning
 
 
 class Phrase(Base):
@@ -176,12 +174,13 @@ class Phrase(Base):
         try:
             # Create a query based on the search text and tags
             query = {}
+            
             if searchText:
                 query["text"] = {
                     "$regex": searchText.strip().lower(), "$options": "i"}
+                
             if tags:
-                query["tags"] = {"$in": [tag.strip().lower()
-                                         for tag in tags.split(",")]}
+                query["tags"] = {"$in": [tag.strip().lower() for tag in tags.split(",")]}
 
             order_by = ("create_date", pymongo.DESCENDING)
             match pageOrder:
@@ -196,23 +195,10 @@ class Phrase(Base):
                 case SortEnum.most_viewed:
                     order_by = ("views", pymongo.DESCENDING)
 
-            print(f"Page index: {pageIndex}")
-            print(f"Page size: {pageSize}")
-            print(f"Skip amount: {pageIndex * pageSize}")
-
             db = get_db()
-            data_from_db = db["phrases"].find(query).sort(
-                order_by[0], order_by[1]).skip(pageIndex * pageSize).limit(pageSize)
-            print(f"Total docs: {db['phrases'].count_documents(query)}")
-            a = db["phrases"].count_documents({})
-            b = db["phrases"].find()
-            phrases: list[Phrase] = [Phrase.convert_mongo_to_phrase(
-                phrase) for phrase in data_from_db]
+            data_from_db = db["phrases"].find(query).sort(order_by[0], order_by[1]).skip(pageIndex * pageSize).limit(pageSize)
 
-            cursor = db["phrases"].find(query).sort(
-                order_by[0], order_by[1]).skip(10)
-            results = list(cursor)
-            print(len(results))
+            phrases: list[Phrase] = [Phrase.convert_mongo_to_phrase(phrase) for phrase in data_from_db]
 
             return ResponseModel(success=True, data=phrases)
 
