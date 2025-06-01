@@ -45,7 +45,10 @@ Example:
    ```
 
 4. **Visit the interactive API docs**:
-   [http://localhost:8000/docs](http://localhost:8000/docs)
+   [http://localhost:8088/docs](http://localhost:8088/docs)
+
+5. **You can run the project and see how it works in this template:**
+   [womanslation.lovable.app](https://womanslation.lovable.app/)
 
 ---
 
